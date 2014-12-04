@@ -11,6 +11,7 @@
 #include "manybody.h" //class for many-body problems
 #include "jastrow.h" //class for derivations of jastrow factor
 #include "slater.h"
+#include "Random.h"
 //#include <mpi.h>
 
 using namespace  std;
@@ -31,7 +32,7 @@ ofstream ofile;
  * -------------------------------------------------------------------------- */
 // The Mc sampling for the variational Monte Carlo
 void mc_sampling(int, int, int, int, int, int, double, mat &, mat &, double,\
-        mat &, mat &);
+        mat &, mat &, vector<Random*> &);
 // The local energy
 double local_energy(mat, double, double, double, int, int, int, double,\
         double &, double &, int);
@@ -52,7 +53,7 @@ int main()
   int thermalization = 0; 
   int charge = 1;                             // nucleus' charge              //
   int dimension = 2;                          // dimensionality               //
-  int number_particles = 2;                   // number of particles          //
+  int number_particles = 1;                   // number of particles          //
   double step_length= 0.1;                    // either f. br.for. or imp.samp//
   mat cumulative_e, cumulative_e2;            // energy-matrices              //
   mat cumulative_e_temp, cumulative_e2_temp;  // energy-matrix (squared)      //
@@ -60,6 +61,12 @@ int main()
   mat kin_e_temp, pot_e_temp;
   double omega = 1.;                         // freq. harm. osc.             //
   int num_threads;                            // number of threads            //
+
+  vector<Random*> randoms;
+  randoms.push_back(new Random(-1));
+  randoms.push_back(new Random(-2));
+  randoms.push_back(new Random(-3));
+  randoms.push_back(new Random(-4));
 
   cumulative_e = mat(max_variations+1, max_variations+1, fill::zeros);
   cumulative_e2 = mat(max_variations+1, max_variations+1, fill::zeros);
@@ -78,7 +85,7 @@ int main()
   mc_sampling(dimension, number_particles, charge, \
               max_variations, number_cycles, thermalization, \
               step_length, cumulative_e_temp, cumulative_e2_temp, omega, \
-              kin_e_temp, pot_e_temp);
+              kin_e_temp, pot_e_temp, randoms);
 #pragma omp barrier
 #pragma omp critical
   {
@@ -116,7 +123,7 @@ int main()
 void mc_sampling(int dimension, int number_particles, int charge,
                  int max_variations, int number_cycles, int thermalization, double step_length,
                  mat &cumulative_e, mat &cumulative_e2, double omega,
-                 mat &kin_e, mat &pot_e){
+                 mat &kin_e, mat &pot_e, vector<Random*> &randoms){
 
   int cycles, variate, variate2, accept, i, j, k, thread;
   long idum;
@@ -147,7 +154,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
           for (i = 0; i < number_particles; i++) {
             for (j = 0; j < dimension; j++) {
 //             r_old(i,j) = step_length*(ran2(&idum)-0.5);
-              r_old(i,j) = gaussian_deviate(&idum);//*sqrt(step_length);
+              r_old(i,j) = randoms[omp_get_thread_num()]->nextGauss()*sqrt(step_length);
             }
           }
 
@@ -165,7 +172,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
             for (i = 0; i < number_particles; i++) {
               for (j = 0; j < dimension; j++) {
 //              r_new(i,j) = r_old(i,j) + step_length*(ran1(&idum)-0.5);
-                r_new(i,j) = r_old(i,j) + gaussian_deviate(&idum)*sqrt(step_length)
+                r_new(i,j) = r_old(i,j) + randoms[omp_get_thread_num()]->nextGauss()*sqrt(step_length)
                            + step_length*D*qforce_old(i,j);
               }
               
@@ -195,7 +202,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
 
 //              greensfunction = 1.;
               // ----------------- metropolis test ---------------------------- //
-              if (ran2(&idum) <= greensfunction*wfnew*wfnew/wfold/wfold){
+              if (randoms[omp_get_thread_num()]->nextDouble() <= greensfunction*wfnew*wfnew/wfold/wfold){
                   for (j = 0; j < dimension; j++){
                       r_old(i,j) = r_new(i,j);
                       qforce_old(i,j) = qforce_new(i,j); 

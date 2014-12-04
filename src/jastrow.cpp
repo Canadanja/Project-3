@@ -60,27 +60,27 @@ double Jastrow::Factor()
     return psi_c;
 }
 
-//! \brief{Gradient of the Jastrow-Ratio}
-vec Jastrow::Gradient(int particle_ind)
+vec Jastrow::Gradient(int i)
 {
-    int j, k;
+    int j, k, n2;
     double r_12, r_12_comp;
     double a;
+
+    n2 = m_number_particles/2;
 
     m_jastrow_grad = vec(m_dimension);
 
     for (j = 0; j < m_number_particles; j++) {
-        if (j != particle_ind) {
+        if (j != i) {
             // loop over dimensions to evaluate distance
             r_12 = 0;
             for (k = 0; k < m_dimension; k++) {
-                r_12 += (m_r(particle_ind,k)-m_r(j,k))*\
-                        (m_r(particle_ind,k)-m_r(j,k));
+                r_12 += (m_r(i,k)-m_r(j,k))*(m_r(i,k)-m_r(j,k));
             }
             r_12 = sqrt(r_12);
 
             // evaluate a for parallel or antiparallel spin
-            if ((particle_ind+j)%2 == 0) { 
+            if ((i < n2 && j < n2) || (i >= n2 && j >= n2)) { 
                 a = 1./3.;
             }
             else {
@@ -90,7 +90,7 @@ vec Jastrow::Gradient(int particle_ind)
             // loop over dimensions to determine the jastro_factor
             r_12_comp = 0.;
             for (k = 0; k < m_dimension; k++) {
-                r_12_comp += m_r(particle_ind,k)-m_r(j,k); // distance of one component
+                r_12_comp = m_r(i,k)-m_r(j,k);
                 m_jastrow_grad(k) += 
                     a*r_12_comp / (r_12*(1. + m_beta*r_12)*(1. + m_beta*r_12));
             }
@@ -100,16 +100,18 @@ vec Jastrow::Gradient(int particle_ind)
     return m_jastrow_grad;
 }
 
-//! \brief{Sum over particles of Laplacian of Jastro-factor}
 double Jastrow::Laplacian(int i)
 {
-    int j, k;
+    int j, k, n2;
     double r_12;
     double a;
     double norm_jastrowfirst2;
     double jastrowrest;
+    
+    n2 = m_number_particles/2;
 
-    //! \todo{potential error when gradient is not calculated before laplacian}
+    //! \todo{potential error when gradient is not calculated before laplacian
+    //no good solution}
     norm_jastrowfirst2 = 0.;
     for(k = 0; k < m_dimension; k++) {
         norm_jastrowfirst2 += m_jastrow_grad(k)*m_jastrow_grad(k);
@@ -119,13 +121,15 @@ double Jastrow::Laplacian(int i)
     jastrowrest = 0.;
     for (j = 0; j < m_number_particles; j++) {
             if (j != i) {
+
                 // evaluate a for parallel or antiparallel spin
-                if ((i+j)%2 == 0) { 
+                if ((i < n2 && j < n2) || (i >= n2 && j >= n2)) { 
                     a = 1./3.;
                 }
                 else {
                     a = 1.;
                 }
+
                 // evaluate positions r_12
                 r_12 = 0.;
                 for (k = 0; k < m_dimension; k++) {
@@ -133,8 +137,8 @@ double Jastrow::Laplacian(int i)
                 }
                 r_12 = sqrt(r_12);
 
-                jastrowrest += (a*(m_dimension - 3)*(m_beta*r_12 + 1.) + 2.)/ \
-                        (r_12*pow(1.+m_beta*r_12,3));
+                jastrowrest += (a*(m_dimension - 3)*(m_beta*r_12 + 1.) + 2.)/ 
+                        (r_12*pow(1. + m_beta*r_12,3));
             }
     }
     m_jastrow_lap = norm_jastrowfirst2 + jastrowrest;
