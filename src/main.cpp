@@ -22,8 +22,8 @@ ofstream ofile;
 // the step length and its squared inverse for the second derivative
 #define h 0.001
 #define h2 1000000
-#define abegin 0.9
-#define bbegin 0.3
+#define abegin 1.0
+#define bbegin 0.4
 #define astep 0.04
 #define bstep 0.04
 
@@ -48,12 +48,12 @@ void quantum_force_init(int, int, double, double, double, double, mat, mat &);
  * -------------------------------------------------------------------------- */
 int main()
 {
-  int number_cycles = 100000;                 // number of Monte-Carlo steps  //
+  int number_cycles = 400000;                 // number of Monte-Carlo steps  //
   int max_variations = 5;                     // max. var. params             //
   int thermalization = 0; 
   int charge = 1;                             // nucleus' charge              //
   int dimension = 2;                          // dimensionality               //
-  int number_particles = 1;                   // number of particles          //
+  int number_particles = 2;                   // number of particles          //
   double step_length= 0.1;                    // either f. br.for. or imp.samp//
   mat cumulative_e, cumulative_e2;            // energy-matrices              //
   mat cumulative_e_temp, cumulative_e2_temp;  // energy-matrix (squared)      //
@@ -160,7 +160,6 @@ void mc_sampling(int dimension, int number_particles, int charge,
 
           system.SetPosition(r_old);
           wfold = system.SixElectronSystem();
-          //wfold = particle_old.UnperturbedWavefunction();
 
           i = 0; 
           quantum_force_init(number_particles, dimension, alpha, beta, omega, \
@@ -376,6 +375,7 @@ double local_energy(mat r, double alpha, double beta, double wfold,\
     }
     e_potential += 0.5*omega*omega*r_single_particle;
   }
+
   // contribution from electron-electron potential
   for (i = 0; i < number_particles-1; i++) {
     for (j = i+1; j < number_particles; j++) {
@@ -383,7 +383,7 @@ double local_energy(mat r, double alpha, double beta, double wfold,\
       for (k = 0; k < dimension; k++) {
         r_12 += (r(i,k)-r(j,k))*(r(i,k)-r(j,k));
       }
-      e_potential += 1/sqrt(r_12);
+      e_potential += 1./sqrt(r_12);
     }
   }
 
