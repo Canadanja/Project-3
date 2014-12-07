@@ -33,8 +33,10 @@ double Jastrow::GetLaplacian()
 
 double Jastrow::Factor()
 {   
-    int i, j, k;
+    int i, j, k, n2;
     double psi_c, r_12, a;
+
+    n2 = m_number_particles/2;
 
     // calculates the relative distance 
     psi_c = 0.0;
@@ -44,14 +46,14 @@ double Jastrow::Factor()
             for (k = 0; k < m_dimension; k++) {
                 r_12 += (m_r(i,k)-m_r(j,k))*(m_r(i,k)-m_r(j,k));
             }
+            r_12 = sqrt(r_12);
             // evaluate a for parallel or antiparallel spin
-            if ((i+j)%2 == 0) { 
+            if ((i < n2 && j < n2) || (i >= n2 && j >= n2)) { 
                 a = 1./3.;
             }
             else {
                 a = 1.;
             }
-            r_12 = sqrt(r_12);
             psi_c += a*r_12/(1. + m_beta*r_12);
         }
     }

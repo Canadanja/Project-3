@@ -22,10 +22,10 @@ ofstream ofile;
 // the step length and its squared inverse for the second derivative
 #define h 0.001
 #define h2 1000000
-#define abegin 1.0
-#define bbegin 0.4
+#define abegin 0.9
+#define bbegin 0.06
 #define astep 0.04
-#define bstep 0.04
+#define bstep 0.004
 
 /* -------------------------------------------------------------------------- *
  *                        Declaration of functions                            *
@@ -48,18 +48,18 @@ void quantum_force_init(int, int, double, double, double, double, mat, mat &);
  * -------------------------------------------------------------------------- */
 int main()
 {
-  int number_cycles = 400000;                 // number of Monte-Carlo steps  //
+  int number_cycles = 100000;                 // number of Monte-Carlo steps  //
   int max_variations = 5;                     // max. var. params             //
   int thermalization = 0; 
   int charge = 1;                             // nucleus' charge              //
   int dimension = 2;                          // dimensionality               //
   int number_particles = 2;                   // number of particles          //
-  double step_length= 0.1;                    // either f. br.for. or imp.samp//
+  double step_length= 0.5;                    // either f. br.for. or imp.samp//
   mat cumulative_e, cumulative_e2;            // energy-matrices              //
   mat cumulative_e_temp, cumulative_e2_temp;  // energy-matrix (squared)      //
   mat kin_e, pot_e;
   mat kin_e_temp, pot_e_temp;
-  double omega = 1.;                         // freq. harm. osc.             //
+  double omega = 0.01;                         // freq. harm. osc.             //
   int num_threads;                            // number of threads            //
 
   vector<Random*> randoms;
@@ -154,7 +154,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
           for (i = 0; i < number_particles; i++) {
             for (j = 0; j < dimension; j++) {
 //             r_old(i,j) = step_length*(ran2(&idum)-0.5);
-              r_old(i,j) = randoms[omp_get_thread_num()]->nextGauss()*sqrt(step_length);
+              r_old(i,j) = gaussian_deviate(&idum)*10;//sqrt(step_length);
             }
           }
 
@@ -171,7 +171,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
             for (i = 0; i < number_particles; i++) {
               for (j = 0; j < dimension; j++) {
 //              r_new(i,j) = r_old(i,j) + step_length*(ran1(&idum)-0.5);
-                r_new(i,j) = r_old(i,j) + randoms[omp_get_thread_num()]->nextGauss()*sqrt(step_length)
+                r_new(i,j) = r_old(i,j) + gaussian_deviate(&idum)*sqrt(step_length)
                            + step_length*D*qforce_old(i,j);
               }
               
@@ -201,7 +201,7 @@ void mc_sampling(int dimension, int number_particles, int charge,
 
 //              greensfunction = 1.;
               // ----------------- metropolis test ---------------------------- //
-              if (randoms[omp_get_thread_num()]->nextDouble() <= greensfunction*wfnew*wfnew/wfold/wfold){
+              if (ran2(&idum) <= greensfunction*wfnew*wfnew/wfold/wfold){
                   for (j = 0; j < dimension; j++){
                       r_old(i,j) = r_new(i,j);
                       qforce_old(i,j) = qforce_new(i,j); 
@@ -290,7 +290,7 @@ void quantum_force_init(int number_particles, int dimension, double alpha, \
         grad_jastrow = jastrow_obj.Gradient(particle_ind);
 
         for(k = 0; k < dimension; k++) {
-            qforce(particle_ind,k) = 2.*(grad_slater(k) + grad_jastrow(k));
+            qforce(particle_ind,k) = 2.*(grad_slater(k)) + grad_jastrow(k);
         }
     }
 }
@@ -330,6 +330,10 @@ double local_energy(mat r, double alpha, double beta, double wfold,\
       lap_jastrow = jastrow_obj.Laplacian(i);
 
       e_kinetic += -0.5*(lap_slater + lap_jastrow + 2*dot(grad_slater,grad_jastrow));
+//#pragma omp critical 
+//      {
+//        cout << lap_slater << setw(14) << lap_jastrow << setw(14) << 2*dot(grad_slater, grad_jastrow) << endl;
+//      }
   }
 
 

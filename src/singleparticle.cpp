@@ -93,12 +93,12 @@ vec SingleParticle::GetGradient() {
         slater_grad(1) = -c*m_r(1);
     }
     else if (m_nx == 1 && m_ny == 0) {
-        slater_grad(0) = -(sqrt(c)*m_r(0)-1.)*(sqrt(c)*m_r(0)+1.);
+        slater_grad(0) = -(c*m_r(0)*m_r(0)-1.);
         slater_grad(1) = -c*m_r(0)*m_r(1);
     }
     else if (m_nx == 0 && m_ny == 1) {
         slater_grad(0) = -c*m_r(0)*m_r(1);
-        slater_grad(1) = -(sqrt(c)*m_r(1)-1.)*(sqrt(c)*m_r(1)+1.);
+        slater_grad(1) = -(sqrt(c)*m_r(1)*m_r(1)-1.);
     }
     slater_grad = slater_grad*exp(-0.5*c*(m_r(0)*m_r(0)+m_r(1)*m_r(1)));
 

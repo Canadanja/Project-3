@@ -25,8 +25,8 @@ class Slater
         void SetPosition(mat r); 
         vec Gradient(int i);
         double Laplacian(int i);
-        void InitInverseSlaterMatrices();
-        void UpdateInverseSlaterMatrices();
+        double GetDetUp();
+        double GetDetDown(); 
 };
 
 #endif // SLATER_H
